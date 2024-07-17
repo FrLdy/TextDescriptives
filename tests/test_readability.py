@@ -88,6 +88,19 @@ def test_flesch_reading_ease(text, expected, nlp):
 @pytest.mark.parametrize(
     "text,expected",
     [
+        (oliver_twist, 72.80),
+    ],
+)
+def test_kandel_reading_ease(text, expected, nlp):
+    text = ftfy.fix_text(text)
+    text = " ".join(text.split())
+    doc = nlp(text)
+    assert doc._.readability["kandel_reading_ease"]
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
         (oliver_twist, 9.48),
         (secret_garden, 4.04),
         (flatland, 12.05),

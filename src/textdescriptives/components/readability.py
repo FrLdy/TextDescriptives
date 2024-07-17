@@ -7,10 +7,8 @@ from spacy.language import Language
 from spacy.tokens import Doc
 from wasabi import msg
 
-from .descriptive_stats import (  # noqa
-    create_descriptive_stats_component,
-    language_exists_in_pyphen,
-)
+from .descriptive_stats import create_descriptive_stats_component  # noqa
+from .descriptive_stats import language_exists_in_pyphen
 from .utils import filter_tokens
 
 
@@ -28,6 +26,23 @@ class Readability:
         if not Doc.has_extension("readability"):
             Doc.set_extension("readability", getter=self.readability)
 
+    def _compute_reading_ease(
+        self, doc: Doc, bias, coeff_avg_sent_len, coeff_avg_syl_per_word
+    ):
+        if not self.can_calculate_syllables:
+            return np.nan
+
+        avg_sentence_length = doc._.sentence_length["sentence_length_mean"]
+        avg_syl_per_word = doc._.syllables["syllables_per_token_mean"]
+        if avg_sentence_length == 0 or avg_syl_per_word == 0:
+            return np.nan
+        score = (
+            bias
+            - (coeff_avg_sent_len * avg_sentence_length)
+            - (coeff_avg_syl_per_word * avg_syl_per_word)
+        )
+        return score
+
     def _flesch_reading_ease(self, doc: Doc):
         """Calculate the Flesch Reading Ease score for a document. The equation
         for the Flesch Reading Ease score is:
@@ -36,15 +51,17 @@ class Readability:
 
         Higher = easier to read
         """
-        if not self.can_calculate_syllables:
-            return np.nan
+        return self._compute_reading_ease(doc, 206.835, 1.015, 84.6)
 
-        avg_sentence_length = doc._.sentence_length["sentence_length_mean"]
-        avg_syl_per_word = doc._.syllables["syllables_per_token_mean"]
-        if avg_sentence_length == 0 or avg_syl_per_word == 0:
-            return np.nan
-        score = 206.835 - (1.015 * avg_sentence_length) - (84.6 * avg_syl_per_word)
-        return score
+    def _kandel_moles_readind_ease(self, doc: Doc):
+        """Calculate the Flesch Reading Ease score for a document. The equation
+        for the Flesch Reading Ease score is:
+
+        207 - (1.015 X avg sent len) - (73.6 * avg_syl_per_word)
+
+        Higher = easier to read
+        """
+        return self._compute_reading_ease(doc, 207, 1.015, 73.6)
 
     def _flesch_kincaid_grade(self, doc: Doc):
         """Calculate the Flesch-Kincaid grade of the document. The equation for
@@ -166,6 +183,7 @@ class Readability:
         return {
             "flesch_reading_ease": self._flesch_reading_ease(doc),
             "flesch_kincaid_grade": self._flesch_kincaid_grade(doc),
+            "kandel_reading_ease": self._kandel_moles_readind_ease(doc),
             "smog": self._smog(doc, hard_words),
             "gunning_fog": self._gunning_fog(doc, hard_words),
             "automated_readability_index": self._automated_readability_index(doc),

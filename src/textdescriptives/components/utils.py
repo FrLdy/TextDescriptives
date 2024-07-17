@@ -6,13 +6,24 @@ from pyphen import Pyphen
 from spacy.tokens import Doc, Span, Token
 
 
-def filter_tokens(doc: Union[Doc, Span]):
+def filter_tokens(doc: Union[Doc, Span], keep_punct=False):
     """Return words in document or span.
 
     Filters punctuation and words that start with an apostrophe (contractions)
     """
+    language_conditions = {
+        "fr": lambda word: True,
+        "en": lambda word: word.text[0] != "'",
+    }
+
+    lang = doc.lang_ if isinstance(doc, Doc) else doc.doc.lang_
+
     filtered_tokens = [
-        word for word in doc if not word.is_punct and "'" not in word.text
+        word
+        for word in doc
+        if (keep_punct or not word.is_punct)
+        and not word.is_space
+        and language_conditions[lang if lang in language_conditions else "en"](word)
     ]
     return filtered_tokens
 

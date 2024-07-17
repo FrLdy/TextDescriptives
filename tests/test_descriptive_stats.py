@@ -1,17 +1,26 @@
+import warnings
+
 import ftfy
 import pytest
 from spacy.lang.en import English
+from spacy.lang.fr import French
 
 from textdescriptives.components import DescriptiveStatistics  # noqa: F401
 
 from .books import flatland, oliver_twist, secret_garden
 
-import warnings
-
 
 @pytest.fixture(scope="function")
 def nlp():
     nlp = English()
+    nlp.add_pipe("sentencizer")
+    nlp.add_pipe("textdescriptives/descriptive_stats")
+    return nlp
+
+
+@pytest.fixture(scope="function")
+def nlp_fr():
+    nlp = French()
     nlp.add_pipe("sentencizer")
     nlp.add_pipe("textdescriptives/descriptive_stats")
     return nlp
@@ -29,6 +38,16 @@ def test_descriptive_stats(nlp):
     assert doc._.counts
     assert doc[0:3]._.token_length
     assert doc[0:3]._.counts
+
+
+def test_token_length(nlp):
+    doc = nlp("Gift cats your prey")
+    assert doc._.token_length["token_length_mean"] == 4.0
+    assert doc._.token_length["token_length_median"] == 4.0
+    assert doc._.token_length["token_length_std"] == 0.0
+    assert doc[0:2]._.token_length["token_length_mean"] == 4.0
+    assert doc[0:2]._.token_length["token_length_median"] == 4.0
+    assert doc[0:2]._.token_length["token_length_std"] == 0.0
 
 
 def test_token_length(nlp):
@@ -71,7 +90,7 @@ def test_syllables_complex(nlp):
 
 def test_counts(nlp):
     doc = nlp(
-        "Here is the first sentence. It was pretty short. Let's make another one "
+        "Here is the first sentence. It was pretty short.\n\t Let's make another one "
         + "that's slightly longer and more complex.",
     )
     assert doc._.counts["n_tokens"] == 19
@@ -83,6 +102,22 @@ def test_counts(nlp):
     assert doc[0:6]._.counts["n_unique_tokens"] == 5
     assert doc[0:6]._.counts["proportion_unique_tokens"] == 1.0
     assert doc[0:6]._.counts["n_characters"] == 23
+
+
+def test_counts_fr(nlp_fr):
+    doc = nlp_fr(
+        "Voici la première phrase. Elle est très courte.\n\t"
+        + "Nous gerons l'apostrophe et les espaces.",
+    )
+    assert doc._.counts["n_tokens"] == 15
+    assert doc._.counts["n_unique_tokens"] == 15
+    assert doc._.counts["proportion_unique_tokens"] == 1.0
+    assert doc._.counts["n_characters"] == 75
+    assert doc._.counts["n_sentences"] == 3
+    assert doc[0:6]._.counts["n_tokens"] == 5
+    assert doc[0:6]._.counts["n_unique_tokens"] == 5
+    assert doc[0:6]._.counts["proportion_unique_tokens"] == 1.0
+    assert doc[0:6]._.counts["n_characters"] == 26
 
 
 @pytest.mark.parametrize("text", ["", "#"])

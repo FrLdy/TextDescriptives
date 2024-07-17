@@ -85,14 +85,7 @@ class DescriptiveStatistics:
             dict: sentence_length_mean, sentence_length_median, sentence_length_std
         """
         # get length of filtered tokens per sentence
-        tokenized_sentences = [
-            [
-                token.text
-                for token in sent
-                if not token.is_punct and "'" not in token.text
-            ]
-            for sent in doc.sents
-        ]
+        tokenized_sentences = [filter_tokens(sent) for sent in doc.sents]
         len_sentences = [len(sentence) for sentence in tokenized_sentences]
         if not len_sentences:
             return {
@@ -145,7 +138,8 @@ class DescriptiveStatistics:
         n_tokens = doc._._n_tokens
         n_types = len({tok.lower_ for tok in filter_tokens(doc)})
         if ignore_whitespace:
-            n_chars = len(doc.text.replace(" ", ""))
+            tokens = [token for token in doc if not token.is_space]
+            n_chars = sum(len(tok) for tok in tokens)
         else:
             n_chars = len(doc.text)
 

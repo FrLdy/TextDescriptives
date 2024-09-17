@@ -40,6 +40,7 @@ dependencies = [
     "pyphen>=0.11.0",
     "ftfy>=6.0.3",
     "pydantic>=2.0",
+    "FinnSyll",
 ]
 
 requires-python = ">=3.8"

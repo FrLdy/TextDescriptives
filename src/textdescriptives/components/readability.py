@@ -8,7 +8,7 @@ from spacy.tokens import Doc
 from wasabi import msg
 
 from .descriptive_stats import create_descriptive_stats_component  # noqa
-from .descriptive_stats import language_exists_in_pyphen
+from .descriptive_stats import n_syllables_computable
 from .utils import filter_tokens
 
 
@@ -21,7 +21,7 @@ class Readability:
 
     def __init__(self, nlp: Language):
         """Initialise components."""
-        self.can_calculate_syllables = language_exists_in_pyphen(lang=nlp.lang)
+        self.can_calculate_syllables = n_syllables_computable(lang=nlp.lang)
 
         if not Doc.has_extension("readability"):
             Doc.set_extension("readability", getter=self.readability)

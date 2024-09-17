@@ -8,15 +8,13 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 from wasabi import msg
 
-from .utils import filter_tokens, n_sentences, n_syllables, n_tokens
-
-
-def language_exists_in_pyphen(lang: str) -> bool:
-    try:
-        _ = Pyphen(lang=lang)
-        return True
-    except KeyError:
-        return False
+from .utils import (
+    filter_tokens,
+    n_sentences,
+    n_syllables,
+    n_syllables_computable,
+    n_tokens,
+)
 
 
 class DescriptiveStatistics:
@@ -29,7 +27,7 @@ class DescriptiveStatistics:
 
     def __init__(self, nlp: Language, verbose: bool):
         """Initialise components."""
-        self.can_calculate_syllables = language_exists_in_pyphen(lang=nlp.lang)
+        self.can_calculate_syllables = n_syllables_computable(lang=nlp.lang)
         if not self.can_calculate_syllables and verbose:
             msg.warn(
                 f"Could not load syllable counter for language {nlp.lang}. "

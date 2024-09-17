@@ -6,6 +6,18 @@ from pyphen import Pyphen
 from spacy.tokens import Doc, Span, Token
 
 
+def language_exists_in_pyphen(lang: str) -> bool:
+    try:
+        _ = Pyphen(lang=lang)
+        return True
+    except KeyError:
+        return False
+
+
+def n_syllables_computable(lang: str) -> bool:
+    return language_exists_in_pyphen(lang) or lang in ["fi"]
+
+
 def filter_tokens(doc: Union[Doc, Span], keep_punct=False):
     """Return words in document or span.
 
@@ -38,13 +50,35 @@ def n_tokens(doc: Union[Doc, Span]):
     return len(filter_tokens(doc))
 
 
-def n_syllables(doc: Doc):
-    """Return number of syllables per token."""
-    dic = Pyphen(lang=doc.lang_)
+def pyphen_n_syllables(lang: str):
+    dic = Pyphen(lang=lang)
 
     def count_syl(token: Token):
         word_hyphenated = dic.inserted(token.lower_)
         return max(1, word_hyphenated.count("-") + 1)
+
+    return count_syl
+
+
+def finn_n_syllables():
+    from finnsyll import FinnSyll
+
+    f = FinnSyll(variation=False)
+
+    def count_syl(token: Token):
+        syllabified = f.syllabify(token.lower_)
+        return max(1, syllabified.count(".") + 1)
+
+    return count_syl
+
+
+def n_syllables(doc: Doc):
+    """Return number of syllables per token."""
+    lang = doc.lang_
+    if language_exists_in_pyphen(lang):
+        count_syl = pyphen_n_syllables(lang)
+    elif doc.lang_ == "fi":
+        count_syl = finn_n_syllables()
 
     return [count_syl(token) for token in filter_tokens(doc)]
 
